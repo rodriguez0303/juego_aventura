@@ -2,12 +2,13 @@
 
 import tkinter as tk
 from tkinter import messagebox
+import csv
 from tkinter import *
 from PIL import Image, ImageTk  # Usamos Pillow para cargar imágenes JPG
 import os 
 from tkinter import Toplevel, Canvas, NO
-import random #se utilizará para generar el movimiento de las motos enemigas 
-import winsound  # se utilizará para reproducir  la música  
+import random 
+ 
 
 
 
@@ -87,10 +88,10 @@ pantalla_principal.after(200, lambda: carga_imagen_pantalla_principal("Fondo1.pn
 ###########################################
 #Función que carga la imagen de fondo que tendrá el botón jugar 
 
-def cargar_imagen_boton_jugar():
+def cargar_imagen_boton_jugar(nombre_imagen):
     
     # Se define la ruta de la imagen del botón
-    ruta = os.path.join(BASE_DIR, 'Imagenes', 'Fondo2.png')
+    ruta = os.path.join(BASE_DIR, 'Imagenes',nombre_imagen)
     
     # Se abre la ruta donde esta la imagén de fondo del botón 
     imagen = Image.open(ruta)
@@ -280,12 +281,12 @@ def validar_avatar_seleccionado(lista, pos):
 def seleccionar_avatar(indice, boton, ventana):
 
     # Limpia el mensaje anterior en que ya no se puede seleccionar otro avatar 
-    ventana.label_mensaje.config(text="")
+    ventana.label_mensaje_avatar.config(text="")
 
     # llama a la función avatar_seleccionado y Se revisa si ya había un avatar seleccionado
     resultado_avatar = validar_avatar_seleccionado(avatar_seleccionado, 0)
 
-    # Si todavía no hay avatar seleccionado
+    # Si todavía no se ha seleccionado un avatar
     if resultado_avatar == False:
 
         # Se guarda el índice del avatar seleccionado
@@ -298,10 +299,10 @@ def seleccionar_avatar(indice, boton, ventana):
         print("Avatar seleccionado:", avatar_seleccionado)
 
         # Mensaje en pantalla
-        ventana.label_mensaje.config(text="Avatar seleccionado correctamente")
+        ventana.label_mensaje_avatar.config(text="Avatar seleccionado correctamente")
 
     else:
-        ventana.label_mensaje.config(text="Ya seleccionaste un avatar. No puedes elegir otro")
+        ventana.label_mensaje_avatar.config(text="Ya seleccionaste un avatar. No puedes elegir otro")
         return
 ###########################################
 
@@ -364,6 +365,11 @@ def crea_avatars(ventana):
 # Función que permite iniciar el registro del juego  Coloca los label, cuadro de texto y botón sobre el canvas     
 def boton_inicio():
     
+    #Se vacía la lista de los personajes seleccionados por el usuario si este se sale de la pantalla 
+    personajes_seleccionados.clear()
+
+    #Se vacía la lista del avatar seleccionado por el usuario si este se sale de la pantalla 
+    avatar_seleccionado.clear()
     
     #Toplevel: permite abrir una ventana secundaria sobre la ventana principal (para escribir el nombre del usuario) 
     ventana_boton_inicio = Toplevel(pantalla_principal)
@@ -375,17 +381,21 @@ def boton_inicio():
     ventana_boton_inicio.attributes('-topmost', True)
     
     # Se coloca una imagen a la pantalla  de parametrización
-    ruta_imagen_fondo = os.path.join(BASE_DIR, 'Imagenes', 'Fondo3.png')  # Ruta donde esta ubicada la imagen 
+    ruta_imagen_fondo = os.path.join(BASE_DIR, 'Imagenes', 'Fondo5.png')  # Ruta donde esta ubicada la imagen 
     print(f"Ruta de la imagen: {ruta_imagen_fondo}") 
     imagen_fondo = Image.open(ruta_imagen_fondo) # Abre la carpeta donde esta colocada la imagen 
     imagen_fondo_tk = ImageTk.PhotoImage(imagen_fondo.resize((800, 750), Image.LANCZOS))  # Redimensiona la imagen 
 
-    # Se crea un Label para mostrar la imagen de fondo
-    label_fondo = Label(ventana_boton_inicio, image=imagen_fondo_tk)
-    label_fondo.place(x=0, y=0, relwidth=1, relheight=1)  # Ocupa todo el fondo de la ventana
+##### 
+    # Se dibuja la imagen del botón de play sobre el canvas de la pantalla de parametrización 
+    canvas_param = Canvas(ventana_boton_inicio, width=800, height=690, highlightthickness=0, bd=0)
+    canvas_param.place(x=0, y=0)
 
-    # Mantiene la imagen en memoria
-    label_fondo.imagen_fondo = imagen_fondo_tk
+    # Se dibuja la imagen de fondo del canvas en la pantalla de parametrización 
+    canvas_param.create_image(400, 345, image=imagen_fondo_tk)
+
+    # Guarda la imagen del fondo de la pantalla de parametrización en memoria 
+    canvas_param.imagen_fondo = imagen_fondo_tk
 
 #####    
     #Creación del label para indicarle al jugador que digite su nombre 
@@ -416,19 +426,55 @@ def boton_inicio():
 
 #####
     #Creación de label que mostrará el mensaje de advertencia de no seleccionar más de 3 personajes 
-    label_mensaje = Label(ventana_boton_inicio, text="", bg="black", fg="yellow", font=("Arial", 12))
+    label_mensaje = Label(ventana_boton_inicio,
+                          text="", 
+                          bg="black", 
+                          fg="yellow", 
+                          font=("Arial", 12))
     label_mensaje.place(x=290, y=480)
 
     # Se guarda la referencia en la ventana
     ventana_boton_inicio.label_mensaje = label_mensaje
-    
+
+#####  
+    #Creación de label que mostrará el mensaje de advertencia de no seleccionar un avatar o escoger más de 1 avatar    
+    label_mensaje_avatar = Label(
+                                    ventana_boton_inicio,
+                                    text="",
+                                    bg="black",
+                                    fg="cyan",
+                                    font=("Arial", 12)
+                                    )
+    label_mensaje_avatar.place(x=250, y=660)
+
+    # Se guarda la referencia del label mensaje de advertencia avatar en la ventana
+    ventana_boton_inicio.label_mensaje_avatar = label_mensaje_avatar
+
+#####  
+    imagen_boton_jugar_param = cargar_imagen_boton_jugar("Fondo2.png")
+
+    # Se dibuja el botón sobre el canvas de la pantalla de parametrización 
+    id_boton_jugar = canvas_param.create_image(580, 560, image=imagen_boton_jugar_param)
+
+    # Se guarda la imagen del botón en memoria 
+    canvas_param.imagen_boton = imagen_boton_jugar_param
+
+    # Evento clic del botón iniciar juego (play)
+        #tag_bind: sirve para detectar eventos en el canvas 
+    canvas_param.tag_bind(
+                            id_boton_jugar,
+                            #button-1 se acciona cuando se da clic izquierdo con el mouse
+                            "<Button-1>",
+                            lambda event: valida_inicio_juego(cuadro_texto_nombre, ventana_boton_inicio)
+                         )
+
 ###########################################
 
 # Función que crea y muestra el botón de inicio en la pantalla principal
 def crear_boton_inicio():
     
     # Se obtiene la imagen del botón llamando a la función de carga
-    imagen_boton = cargar_imagen_boton_jugar()
+    imagen_boton = cargar_imagen_boton_jugar("Fondo4.png")
 
       # se dibuja directamente la imagen sobre el canvas (se le da una ubicación al botón)
 
@@ -447,6 +493,155 @@ def crear_boton_inicio():
 
 # Se crea el botón después de que el fondo ya fue dibujado
 pantalla_principal.after(300, crear_boton_inicio)
+
+###########################################
+
+# Función que abre la ventana del juego y muestra el mapa 
+def abrir_ventana_juego():
+
+    #Se crea una ventana encima de la pantalla principal 
+    ventana_juego = Toplevel(pantalla_principal)
+    
+    #Se da un nombre a la pantalla del mapa
+    ventana_juego.title("Epic Adventure")
+    
+    #Se define el tamaño de la ventana (tamaño de la ventana, posición eje "x", posición eje "y")
+    ventana_juego.geometry("900x600+300+100")
+    
+    #Se bloquea la opción de aumentar o disminuir el tamaño de la ventana
+    ventana_juego.resizable(False, False)
+
+    canvas_juego = colocar_fondo_mapa(ventana_juego)
+
+    # Se dibuja sobre la imagen el texto "Mapa del juego"
+    canvas_juego.create_text(
+                                450, 50,
+                                text="Mapa del juego",
+                                fill="white",
+                                font=("Arial", 24, "bold")
+                            )
+
+ 
+###########################################
+
+# Función que valida los datos antes de iniciar el juego
+def valida_inicio_juego(cuadro_texto_nombre, ventana):
+
+    # Se obtiene el nombre escrito por el usuario
+    nombre_jugador = cuadro_texto_nombre.get()
+
+    # Limpia mensajes anteriores
+    ventana.label_mensaje.config(text="")
+    ventana.label_mensaje_avatar.config(text="")
+
+    # Si el nombre está vacío
+    if nombre_jugador == "":
+        ventana.label_mensaje.config(text="Debe escribir su nombre de jugador")
+        return
+
+    # Si no ha seleccionado 3 personajes
+    if len(personajes_seleccionados) != 3:
+        ventana.label_mensaje.config(text="Debe seleccionar 3 personajes")
+        return
+
+    # Si no ha seleccionado avatar
+    if len(avatar_seleccionado) != 1:
+        ventana.label_mensaje_avatar.config(text="Debe seleccionar 1 avatar")
+        return
+    
+    # Se cierra la ventana de parametrización 
+    ventana.destroy()
+    
+    # Si todo está correcto, se abre la ventana del juego
+    abrir_ventana_juego()
+
+###########################################
+#Función que coloca el fondo a la pantalla de juego 
+def colocar_fondo_mapa(ventana):
+
+    # Ruta de la imagen del mapa
+    ruta_mapa = os.path.join(BASE_DIR, 'Imagenes', 'Fondo6.png')
+
+    # Se abre la ruta donde se encuentra la imagen 
+    imagen_mapa = Image.open(ruta_mapa)
+
+    # Se ajusta el tamaño de la imagen al tamaño de la ventana del juego 
+    imagen_mapa = imagen_mapa.resize((900, 600), Image.LANCZOS)
+
+    # Se convierte la imangen al formato que pueda usar tkinter
+    imagen_mapa_tk = ImageTk.PhotoImage(imagen_mapa)
+
+    # Creación del canvas que contendrá el mapa 
+    canvas_mapa = Canvas(ventana, width=900, height=600, highlightthickness=0, bd=0)
+    canvas_mapa.place(x=0, y=0)
+
+    # Dibujar la imagen en el centro del canvas
+    canvas_mapa.create_image(450, 300, image=imagen_mapa_tk)
+
+    # Guardar referencia para que no desaparezca
+    canvas_mapa.imagen_fondo = imagen_mapa_tk
+
+    return canvas_mapa
+
+###########################################
+
+# Basado en:
+# Python Software Foundation. (s.f.). Módulo csv.
+# https://docs.python.org/3/library/csv.html
+# Adaptado a recursividad para este proyecto
+# Apoyo de la IA chatgpt
+
+#Función que cargar los personajes del archivo CSV 
+def cargar_personajes_csv():
+
+    #Se abre la ruta que contiene el archivo csv que 
+    ruta = os.path.join(BASE_DIR, "personajes.csv")
+    
+    #Lista que guardará todos los personajes 
+    personajes = []
+
+    #Se abre el archivos CSV
+    with open(ruta, newline='', encoding='utf-8') as archivo:
+
+        #Convierte cada filas del CSV en un diccionario 
+        lector = csv.DictReader(archivo)
+    
+        """   {
+            "nombre": "Maga del bosque",
+            "imagen": "Guerrero1_frente.png",
+            "vida": "78",
+            "ataque": "82",
+            "defensa": "58"
+            } """
+
+        return leer_csv(lector, personajes)
+
+#############
+
+# Función que va leyendo una a una las filas del archivo CSV
+def leer_csv(lector, personajes):
+
+    try:
+        # Obtiene la siguiente fila del CSV
+        fila = next(lector)
+
+        #Convierte la fila en un objeto 
+        personaje = {
+            "nombre": fila["nombre"],
+            "imagen": fila["imagen"],
+            "vida": int(fila["vida"]),
+            "ataque": int(fila["ataque"]),
+            "defensa": int(fila["defensa"])
+        }
+        #Se agrega el personaje a la lista 
+        personajes.append(personaje)
+
+        # Llamada recursiva
+        return leer_csv(lector, personajes)
+    
+    #Se detiene la lectura del CSV cuando ya no hay másfilas 
+    except StopIteration:
+        return personajes
 
 ###########################################
 # Se agrega el mainloop para que se muestre la ventana 
