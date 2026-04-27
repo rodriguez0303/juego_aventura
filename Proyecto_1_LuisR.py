@@ -9,9 +9,6 @@ import os
 from tkinter import Toplevel, Canvas, NO
 import random 
  
-
-
-
 # Evita que se presenten problemas al cargar las imagenes 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -23,7 +20,6 @@ personajes_seleccionados = []
 
 #Lista que guardará el avatar seleccionado por el usuario 
 avatar_seleccionado = []
-
 
 ###########################################
 #Creación de pantalla principal 
@@ -96,7 +92,7 @@ def cargar_imagen_boton_jugar(nombre_imagen):
     # Se abre la ruta donde esta la imagén de fondo del botón 
     imagen = Image.open(ruta)
 
-    # Se define el tamaño máximo permitido para el botón
+    # Se define el tamaño (alto y largo) máximo permitido para el botón
     max_ancho, max_alto = 350, 140
 
     # Se obtiene el tamaño original de la imagen
@@ -349,7 +345,7 @@ def crea_avatars(ventana):
     frame_avatars = Frame(ventana, bg="white")
 
     # Posición del frame
-    frame_avatars.place(x=230, y=555, width=340, height=110)
+    frame_avatars.place(x=130, y=555, width=340, height=110)
 
     # Rutas de las imagenes donde están ubicados los avatares
     rutas_avatars = [
@@ -454,7 +450,7 @@ def boton_inicio():
     imagen_boton_jugar_param = cargar_imagen_boton_jugar("Fondo2.png")
 
     # Se dibuja el botón sobre el canvas de la pantalla de parametrización 
-    id_boton_jugar = canvas_param.create_image(580, 560, image=imagen_boton_jugar_param)
+    id_boton_jugar = canvas_param.create_image(595, 610, image=imagen_boton_jugar_param)
 
     # Se guarda la imagen del botón en memoria 
     canvas_param.imagen_boton = imagen_boton_jugar_param
@@ -513,6 +509,9 @@ def abrir_ventana_juego():
 
     canvas_juego = colocar_fondo_mapa(ventana_juego)
 
+    #Se llama a la función que crea las 5 ubicaciones sobre el mapa 
+    crear_ubicaciones_mapa(canvas_juego)
+
     # Se dibuja sobre la imagen el texto "Mapa del juego"
     canvas_juego.create_text(
                                 450, 50,
@@ -520,8 +519,6 @@ def abrir_ventana_juego():
                                 fill="white",
                                 font=("Arial", 24, "bold")
                             )
-
- 
 ###########################################
 
 # Función que valida los datos antes de iniciar el juego
@@ -643,6 +640,156 @@ def leer_csv(lector, personajes):
     except StopIteration:
         return personajes
 
+###########################################
+
+# Función que controla a que ubicación puede moverse el jugador 
+def seleccionar_ubicacion_mapa(indice, canvas):
+
+    #Se valida si el usuario previamente dio clic sobre la ubicación (para que no haga ninguna acción)
+    if indice == canvas.ubicacion_actual[0]:
+        print("Ya estás en esta ubicación")
+        return
+
+    #Se valida que el jugador solo pueda acceder a otro mapa si esta en secuencia (ubicación anterio = 0 + nueva ubicación =1)
+    if indice == canvas.ubicacion_actual[0] + 1:
+
+        #Se encarga de actualizar la posición del jugador luego de haber pasado un mapa 
+        canvas.ubicacion_actual[0] = indice
+        print("Se actualiza la ubicación del jugador:", indice + 1)
+
+        #Mensaje que le indica al usuario a que ubicación avanzó
+        canvas.create_text(
+                            450, 560,
+                            text=f"Avanzaste a la ubicación {indice + 1}",
+                            fill="white",
+                            font=("Arial", 16, "bold")
+                             )
+
+        #Se llama a la función que abre la pantalla de inicio de batallas    
+        iniciar_ventana_batalla(indice)
+
+    #Mensaje de advertencia que le indica al usuario que debe seguir el mapa en orden secuencial 
+    else:
+        canvas.create_text(
+                            450, 560,
+                            text="Debes avanzar en orden secuencial por las ubicaciones",
+                            fill="red",
+                            font=("Arial", 16, "bold")
+                            )
+###########################################
+# Función que coloca las 5 ubicaciones en el mapa
+def crear_ubicaciones_mapa(canvas):
+
+    canvas.ubicacion_actual = [-1]
+    # Lista que contiene la ubicación y el nombre de cada zona de juego(x,y,nombre)
+    ubicaciones = [
+                    (120, 420, "Desierto","Desierto.png"),
+                    (780, 460, "Castillo","Castillo.png"),
+                    (300, 250, "Selva","Selva.png"),
+                    (30, 180, "Nieve", "Nieve.png"),
+                     (490, 110, "Volcán", "Volcan.png"),
+                    
+                    ]
+
+    mostrar_ubicaciones_mapa(0, ubicaciones, canvas)
+
+###########################################
+
+# Función que dibuja las ubicaciones del mapa
+def mostrar_ubicaciones_mapa(indice, ubicaciones, canvas):
+
+    # Caso base: si ya recorrió toda la lista, se detiene
+    if indice >= len(ubicaciones):
+        return
+
+   
+    ubicacion = ubicaciones[indice]
+
+    # Cada ubicación tiene: (posición eje x, posición eje y, nombre de la ubicación , imagen)
+    x = ubicacion[0]
+    y = ubicacion[1]
+    nombre = ubicacion[2]
+
+    # Si se esta en la primera ubicación "Desierto" se coloca la imagen de este 
+    if indice == 0:
+        imagen_ubicacion = "Desierto.png"
+
+    # Si se esta en la segunda ubicación "Castillo" se coloca la imagen de este 
+    elif indice == 1:
+        imagen_ubicacion = "Castillo.png"
+
+    # Si se esta en la tercera ubicación "Selva" se coloca la imagen de este 
+    elif indice == 2:
+        imagen_ubicacion = "Selva.png"
+
+    # Si se esta en la cuarta ubicación "Nieve" se coloca la imagen de este 
+    elif indice == 3:
+        imagen_ubicacion = "Nieve.png"
+
+    # Si se esta en la primera ubicación "Volcan" se coloca la imagen de este 
+    elif indice == 4:
+        imagen_ubicacion = "Volcan.png"
+
+    #Se accede a la ruta donde esta las imagenes de las locaciones 
+    ruta_imagen = os.path.join(BASE_DIR, 'Imagenes', imagen_ubicacion)
+
+    # Se carga y ajusta la imagen
+    imagen = Image.open(ruta_imagen)
+    imagen = imagen.resize((65, 65), Image.LANCZOS)
+    imagen_tk = ImageTk.PhotoImage(imagen)
+
+    # Guarda la referencia de las imágenes para que no desaparezca
+    referencias_imagenes.append(imagen_tk)
+
+    # Se dibuja la imagen en el mapa
+    icono = canvas.create_image(x, y, image=imagen_tk)
+
+    # Dibuja el nombre de la ubicación debajo de la imagen
+    texto = canvas.create_text(
+                                x,
+                                y + 45,
+                                text=nombre, # Toma el nombre de la ubicación de esta posición definidad previamente: nombre = ubicacion[2]
+                                fill="white",
+                                font=("Arial", 10, "bold")
+                            )
+
+    #  Si el usuario hace clic en la "imagen" de la ubicación se llama a la función de selección de ubicación mapa
+    canvas.tag_bind(
+                        icono,
+                        "<Button-1>", #Clic izquierdo
+                        #lambda: permite llamara a la función seleccionar_ubicacion_mapa que abre la ventana de batallas
+                        lambda event, i=indice: seleccionar_ubicacion_mapa(i, canvas)
+                    )
+
+    #  Si el usuario hace clic en el "texto" de la ubicación se llama a la función de selección de ubicación mapa
+    canvas.tag_bind(
+                        texto,
+                        "<Button-1>",
+                        lambda event, i=indice: seleccionar_ubicacion_mapa(i, canvas)
+                    )
+
+    # Llamada recursiva para la siguiente ubicación
+    mostrar_ubicaciones_mapa(indice + 1, ubicaciones, canvas)
+
+###########################################
+
+#Función que crea la pantalla para iniciar la batalla del juego 
+def iniciar_ventana_batalla(indice):
+
+    #Se crea la ventana de batalla  
+    ventana_batalla = Toplevel(pantalla_principal)
+    #Se da el nombre a la ventana de btallas 
+    ventana_batalla.title("Batalla contra Hollow")
+    #Se define el tamaño que tiene la pantalla de batallas 
+    ventana_batalla.geometry("700x500+350+120")
+    #Se impide ampliar el tamaño de la pantalla de batallas 
+    ventana_batalla.resizable(False, False)
+
+    #Se define un fondo negro para la pantalla de batallas 
+    canvas_batalla = Canvas(ventana_batalla, bg="black", width=700, height=500)
+    canvas_batalla.place(x=0, y=0)
+
+    
 ###########################################
 # Se agrega el mainloop para que se muestre la ventana 
 pantalla_principal.mainloop()
