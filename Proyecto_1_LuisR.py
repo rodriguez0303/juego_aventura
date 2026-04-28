@@ -21,6 +21,8 @@ personajes_seleccionados = []
 #Lista que guardará el avatar seleccionado por el usuario 
 avatar_seleccionado = []
 
+
+
 ###########################################
 #Creación de pantalla principal 
 pantalla_principal = Tk()
@@ -592,7 +594,7 @@ def colocar_fondo_mapa(ventana):
 def cargar_personajes_csv():
 
     #Se abre la ruta que contiene el archivo csv que 
-    ruta = os.path.join(BASE_DIR, "personajes.csv")
+    ruta = os.path.join(BASE_DIR, "Personajes.csv")
     
     #Lista que guardará todos los personajes 
     personajes = []
@@ -640,6 +642,9 @@ def leer_csv(lector, personajes):
     except StopIteration:
         return personajes
 
+#Se llama a la función que lee el archivo SCV y guarda el resultado en la variable "personajes"  
+    # cargar los datos del CSV y los guarda en memoria {'nombre': 'Maga del bosque', 'ataque': 82, ...}  
+personajes = cargar_personajes_csv()
 ###########################################
 
 # Función que controla a que ubicación puede moverse el jugador 
@@ -647,7 +652,9 @@ def seleccionar_ubicacion_mapa(indice, canvas):
 
     #Se valida si el usuario previamente dio clic sobre la ubicación (para que no haga ninguna acción)
     if indice == canvas.ubicacion_actual[0]:
-        print("Ya estás en esta ubicación")
+        print("Reingresando a la  ubicación")
+        #Se llama a la función que abre la ventana de batalla nuevamente en caso que el usuario diera clic sobre la x la primera vez que ingresó 
+        iniciar_ventana_batalla(indice)
         return
 
     #Se valida que el jugador solo pueda acceder a otro mapa si esta en secuencia (ubicación anterio = 0 + nueva ubicación =1)
@@ -781,15 +788,292 @@ def iniciar_ventana_batalla(indice):
     #Se da el nombre a la ventana de btallas 
     ventana_batalla.title("Batalla contra Hollow")
     #Se define el tamaño que tiene la pantalla de batallas 
-    ventana_batalla.geometry("700x500+350+120")
+    ventana_batalla.geometry("700x500+385+150")
     #Se impide ampliar el tamaño de la pantalla de batallas 
     ventana_batalla.resizable(False, False)
 
-    #Se define un fondo negro para la pantalla de batallas 
-    canvas_batalla = Canvas(ventana_batalla, bg="black", width=700, height=500)
+    #Se define los fondos de pantalla que tendrá cada escenario de lucha 
+    if indice == 0:
+        fondo_batalla = "FondoBatallaDesierto.png"
+    elif indice == 1:
+        fondo_batalla = "FondoBatallaCastillo.png"
+    elif indice == 2:
+        fondo_batalla = "FondoBatallaSelva.png"
+    elif indice == 3:
+        fondo_batalla = "FondoBatallaNieve.png"
+    elif indice == 4:
+        fondo_batalla = "FondoBatallaVolcan.png"
+    else:
+        fondo_batalla = "FondoBatallaDesierto.png"
+
+
+    # Se crea el canvas donde se colocará la imagen de fondo de la pantalla de batallas 
+    canvas_batalla = Canvas(ventana_batalla, width=700, height=500, highlightthickness=0)
     canvas_batalla.place(x=0, y=0)
 
+    #Variable que inicializa la vida del enemigo con 100 puntos de vida (cada vez que se ingresa a la pantalla de batalla se inicializa con 100) 
+    canvas_batalla.vida_enemigo = 100
+
+    # Se define la ruta donde se encuentra las imagenes de fondo de la pantalla de batalla 
+    ruta_fondo = os.path.join(BASE_DIR, 'Imagenes', fondo_batalla)
+
+    # Se abre la ruta donde se encuentra la imagen de fondo de la pantalla de batalla 
+    imagen_fondo = Image.open(ruta_fondo)
+
+    # Se ajusta la imagen de fondo de la pantalla de batalla  al mismo tamaño de la ventana 
+    imagen_fondo = imagen_fondo.resize((700, 500), Image.LANCZOS)
+
+    #Se convierte la imagen en un formato que tkinter pueda usar 
+    imagen_fondo_tk = ImageTk.PhotoImage(imagen_fondo)
+
+    # Se dibuja la imagen sobre el canvas 
+    canvas_batalla.create_image(350, 250, image=imagen_fondo_tk)
+
+    # Se evita que la imagen de la pantalla de batalla desaparezca 
+    canvas_batalla.imagen_fondo = imagen_fondo_tk
     
+    # Se llama a la función que carga la imagenes de los guerrero en la pantalla de juego 
+    mostrar_avatar_batalla(canvas_batalla)
+
+    # Se crea la lista vacía donde se guardará el ID de los personajes guerreros
+    canvas_batalla.ids_guerreros = []
+
+    # Se crea la lista vacía donde se almacenará la posición de los guerreros 
+    canvas_batalla.posiciones_guerreros = []
+
+    # Se llama a la función que carga la imagen del avatar en la pantalla de juego 
+    mostrar_personajes_batalla(0, canvas_batalla)
+
+    
+###########################################
+# Función que coloca a los guerreros sobre la pantalla  
+def mostrar_personajes_batalla(posicion, canvas):
+
+    # Si ya se rrecorrio la cantidad de personajes (3) no se debe hacer nada más
+    if posicion >= len(personajes_seleccionados):
+        return
+
+    # Se obtiene el índice del personaje seleccionados en la pantalla de configuración 
+    indice_personaje = personajes_seleccionados[posicion]
+
+    # Como los personajes son guardados en una lista con el indice 0 se le suma 1 para que tome el valor correcto iniciando en 1
+    numero = indice_personaje + 1
+
+    # Se crea automáticamente el nombre de la imagen usando el número del personaje.
+        #Por ejemplo: Guerrero1_espalda.png (donde número es igual al valor que tiene la lista almacenada con el ID del personaje seleccionado)
+    nombre_archivo = f"Guerrero{numero}_espalda.png"
+    #Define la ruta donde se tomarán las imagenes de los guerreros 
+    ruta = os.path.join(BASE_DIR, "Imagenes", nombre_archivo)
+
+    # Se carga la imagen de los guerreros de la ruta previamente definidad
+    imagen = Image.open(ruta)
+    #Se define el tamaño de las imagens 
+    imagen = imagen.resize((90, 90), Image.LANCZOS)
+    #Se convierte la imagen del guerrero en un formato que pueda usar tkinter 
+    imagen_tk = ImageTk.PhotoImage(imagen)
+
+    # Se guarda referencia para que no desaparezca
+    referencias_imagenes.append(imagen_tk)
+
+    # Posición horizontal de guerreros en pantalla
+    x = 80 + (posicion * 80)
+    y = 380
+
+    #Se crea la imagen del guerrero en el canvas y se guarda su ID
+    id_guerrero = canvas.create_image(x, y, image=imagen_tk)
+
+    # Se guarda el ID del guerrero en una lista. Por ejemplo [5, 6, 7]
+    canvas.ids_guerreros.append(id_guerrero)
+
+    # Se guarda la posición en la que esta colocada la imagen del guerrero. Por ejemplo [(180, 380), (280, 380), (380, 380)] 
+    canvas.posiciones_guerreros.append((x, y))
+
+    # Permite que se pueda dar clic sobre cada unos de los guerreros en pantalla 
+    canvas.tag_bind(
+                        id_guerrero,
+                        "<Button-1>",
+                        lambda event, p=posicion: seleccionar_guerrero_batalla(p, canvas) #Se llama a la función "seleccionar_guerrero_batalla" que permite que el guerrero se mueva hacia adelante 
+                    )
+
+    # Se llama a la función y se incrementa en uno la posición para el siguiente personaje 
+    mostrar_personajes_batalla(posicion + 1, canvas)
+
+###########################################
+# Función que coloca el avatar seleccionado sobre la pantalla de batalla
+def mostrar_avatar_batalla(canvas):
+
+    # Si no hay avatar seleccionado, no hace nada
+    if len(avatar_seleccionado) == 0:
+        return
+
+    # Se obtiene el índice del avatar seleccionado
+    indice_avatar = avatar_seleccionado[0]
+
+    # Como el índice inicia en 0, se suma 1 para formar el nombre del archivo
+    numero = indice_avatar + 1
+
+    # Se crea automáticamente el nombre de la imagen del avatar
+        #Por ejemplo: Avatar1.png (donde número es igual al valor que tiene la lista almacenada con el ID del personaje seleccionado)
+    nombre_archivo = f"Avatar{numero}.png"
+
+    # Define la ruta donde está la imagen del avatar
+    ruta = os.path.join(BASE_DIR, "Imagenes", nombre_archivo)
+
+    # Se carga la imagen del avatar
+    imagen = Image.open(ruta)
+
+    # Se define el tamaño del avatar
+    imagen = imagen.resize((80, 80), Image.LANCZOS)
+
+    # Se convierte la imagen a formato compatible con Tkinter
+    imagen_tk = ImageTk.PhotoImage(imagen)
+
+    # Se guarda referencia para que no desaparezca
+    referencias_imagenes.append(imagen_tk)
+
+    # Posición del avatar en pantalla
+    x = 80
+    y = 280
+
+    # Se dibuja el avatar sobre el canvas
+    canvas.create_image(x, y, image=imagen_tk)
+
+###########################################
+
+#Referencia: Función generada con Chat GPT 
+
+# Función que selecciona cuál guerrero irá a pelear (se colocará al guerrero un paso más arriba que los otros personajes)
+def seleccionar_guerrero_batalla(posicion, canvas):
+
+    # Se valida si ya en el canvas hay un guerrero seleccionado
+        #hasattr sirve para saber si hay un guerrero seleccionado; sino, no se hace nada
+            #hasattr necesita dos parámetros (objeto, nombre del atributo)
+                                            #(donde se guarda el objeto "canvas", id del guerrero seleccionado)
+    if hasattr(canvas, "guerrero_seleccionado"):
+
+        #Si había un guerrero seleccionado se guarda su ubicación actual en la variable guerrero_anterior 
+        guerrero_anterior = canvas.guerrero_seleccionado
+
+        # Se obtiene la posición original del guerrero que actualmente esta seleccionado (x, y)
+        posicion_anterior = canvas.posiciones_guerreros[guerrero_anterior]
+
+        #Se determina la posición previa del guerrero en la posicón "x" y posición "y"
+        x_anterior = posicion_anterior[0]
+        y_anterior = posicion_anterior[1]
+
+        # Se obtien el ID del guerrero anterior
+        id_anterior = canvas.ids_guerreros[guerrero_anterior]
+
+        # Se devuelve el guerrero a su lugar original
+        canvas.coords(id_anterior, x_anterior, y_anterior)
+
+    # Se guardaa el nuevo guerrero seleccionado
+    canvas.guerrero_seleccionado = posicion
+
+    # Se obtiene la posición original del nuevo guerrero 
+    posicion_actual = canvas.posiciones_guerreros[posicion]
+    
+    #Se obtiene la posición actual en el eje "x" y "y" del guerrero 
+    x_actual = posicion_actual[0]
+    y_actual = posicion_actual[1]
+
+    # Obtener el ID del guerrero actual
+    id_actual = canvas.ids_guerreros[posicion]
+
+    # Se mueve el guerrero hacia adelante (sube 40 px)
+    canvas.coords(id_actual, x_actual, y_actual - 40)
+
+    #Se muestra el mensaje en consola ---
+    print("Guerrero enviado a pelear:", posicion)
+###########################################
+# Función que coloca el botón Fight en la pantalla de batalla
+def mostrar_boton_fight(canvas):
+
+    # Se define la ruta de la imagen del botón Fight
+    ruta = os.path.join(BASE_DIR, "Imagenes", "BotonFight.png")
+
+    # Se abre la ruta que tiene imagen del botón
+    imagen = Image.open(ruta)
+
+    # Se ajusta el tamaño del botón
+    imagen = imagen.resize((180, 70), Image.LANCZOS)
+
+    # Se convierte la imagen a formato compatible con Tkinter
+    imagen_tk = ImageTk.PhotoImage(imagen)
+
+    # Se guarda referencia de la imagen del botón fight para que no desaparezca
+    referencias_imagenes.append(imagen_tk)
+
+    # Se dibuja el botón fight debajo de los personajes
+    id_boton_fight = canvas.create_image(180, 455, image=imagen_tk)
+
+    # Se guarda la imagen del botón Fight dentro del canvas
+    canvas.imagen_boton_fight = imagen_tk
+
+    # Se permite dar clic sobre el botón Fight
+    canvas.tag_bind(
+                        id_boton_fight,
+                        "<Button-1>",
+                        lambda event: clic_boton_fight(canvas) # Se llama a la función clic_boton_fight que determina los puntos de ataque del personaje
+                    )
+
+###########################################
+
+#Función que controla el ataque de los personajes guerreros 
+def clic_boton_fight(canvas):
+
+    # Se valida que se haya seleccionado un guerrero
+    if not hasattr(canvas, "guerrero_seleccionado"):
+        print("No has seleccionado un guerrero")
+        return
+
+    # Se obtiene el id de posición del guerrero que eligió el jugador para atacar (0,1,2)
+        # 0 = primer guerrero
+        # 1 = segundo guerrero
+        # 2 = tercer guerrero
+    posicion = canvas.guerrero_seleccionado
+
+    # Índice real del CSV con base en la posición de los 3 personajes selecionado para luchar 
+     #Por ejemplo el personaje de la posición #2 de los 3 que escogí para luchar, corresponde al personaje #7 del CSV. Por eso, se hace alusión 
+        # a la función def seleccionar_personaje que contiene la variable "personajes_seleccionados". 
+            # Por ejemplo personaje id 7 del CSV [corresponde a la posición #2 en el campo de batalla]
+    indice_real = personajes_seleccionados[posicion]
+
+    # Se obtiene los puntos de ataque del personaje con base en el ID de este en el archivo CSV (lista personajes)
+    ataque = personajes[indice_real]["ataque"]
+
+    # Se resta vida al enemigo con base en el ataque del personaje guerrero
+    canvas.vida_enemigo -= ataque
+
+    # Mostrar en consola
+    print("Daño realizado:", ataque)
+    print("Vida restante enemigo:", canvas.vida_enemigo)
+
+    # Se muestra en pantalla un texto con la cantidad de ataque generada por el guerrero 
+    canvas.create_text(
+                            350, 420,
+                            text=f"Daño: {ataque}",
+                            fill="red",
+                            font=("Arial", 16, "bold")
+                        )
+
+    #Se muestra un texto que indica la vida actual del enemigo tras el ataque 
+    canvas.create_text(
+                            350, 450,
+                            text=f"Vida enemigo: {canvas.vida_enemigo}",
+                            fill="white",
+                            font=("Arial", 14, "bold")
+                        )
+
+    # Se valida si la vida del enemigo es igual o menor a 0 y alerta que ha muerto 
+    if canvas.vida_enemigo <= 0:
+        canvas.create_text(
+                            350, 250,
+                            text="¡ENEMIGO DERROTADO!",
+                            fill="yellow",
+                            font=("Arial", 22, "bold")
+                             )
+
 ###########################################
 # Se agrega el mainloop para que se muestre la ventana 
 pantalla_principal.mainloop()
