@@ -1,0 +1,6 @@
+ubicacion,nombre,imagen,vida,ataque,defensa
+0,Hollow del Desierto,Hollow1.png,120,45,20
+1,Hollow del Castillo,Hollow2.png,140,50,25
+2,Hollow de la Selva,Hollow3.png,160,55,30
+3,Hollow de la Nieve,Hollow4.png,180,60,35
+4,Hollow del Volcán,Hollow5.png,200,70,40
