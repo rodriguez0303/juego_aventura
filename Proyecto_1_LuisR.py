@@ -712,42 +712,44 @@ def leer_hollows_csv(lector, hollows):
 hollows = cargar_hollows_csv()
 
 ###########################################
-# Función que controla a que ubicación puede moverse el jugador 
-def seleccionar_ubicacion_mapa(indice, canvas):
 
-    #Se valida si el usuario previamente dio clic sobre la ubicación (para que no haga ninguna acción)
-    if indice == canvas.ubicacion_actual[0]:
-        print("Reingresando a la  ubicación")
-        #Se llama a la función que abre la ventana de batalla nuevamente en caso que el usuario diera clic sobre la x la primera vez que ingresó 
-        iniciar_ventana_batalla(indice)
-        return
+# Función que valida si la siguiente ubicación esta disponible o esta bloqueada 
+def seleccionar_ubicacion_mapa(indice, canvas_mapa):
 
-    #Se valida que el jugador solo pueda acceder a otro mapa si esta en secuencia (ubicación anterio = 0 + nueva ubicación =1)
-    if indice == canvas.ubicacion_actual[0] + 1:
+    # Se valida que el jugador solo pueda acceder a la siguiente ubicación disponible
+    if indice == canvas_mapa.ubicacion_actual[0] + 1:
 
-        #Se encarga de actualizar la posición del jugador luego de haber pasado un mapa 
-        canvas.ubicacion_actual[0] = indice
-        print("Se actualiza la ubicación del jugador:", indice + 1)
 
-        #Mensaje que le indica al usuario a que ubicación avanzó
-        canvas.create_text(
+        print("Ingresando a la ubicación:", indice + 1)
+
+        # Se borra cualquier mensaje anterior del mapa
+        canvas_mapa.delete("mensaje_mapa")  
+
+        # Mensaje que indica a qué ubicación avanzó
+        canvas_mapa.create_text(
                             450, 560,
-                            text=f"Avanzaste a la ubicación {indice + 1}",
+                            text=f"Ingresando a la ubicación {indice + 1}",
                             fill="white",
-                            font=("Arial", 16, "bold")
-                             )
+                            font=("Arial", 16, "bold"),
+                            tags="mensaje_mapa"  
+                          )
 
-        #Se llama a la función que abre la pantalla de inicio de batallas    
-        iniciar_ventana_batalla(indice)
+        # Se llama a la función que abre la pantalla de batalla, pero todavía no se actualiza la ubicación 
+            #Ingresar a la batalla no significa que se ganó esta (en caso de que el usuario abra y cierra la ventana )
+        iniciar_ventana_batalla(indice, canvas_mapa)
+        return  
 
-    #Mensaje de advertencia que le indica al usuario que debe seguir el mapa en orden secuencial 
-    else:
-        canvas.create_text(
-                            450, 560,
-                            text="Debes avanzar en orden secuencial por las ubicaciones",
-                            fill="red",
-                            font=("Arial", 16, "bold")
-                            )
+    # Si la ubicación ya fue superada o todavía no está disponible, se bloquea
+    canvas_mapa.delete("mensaje_mapa") 
+
+    canvas_mapa.create_text(
+                        450, 560,
+                        text="Ubicación bloqueada",
+                        fill="red",
+                        font=("Arial", 16, "bold"),
+                        tags="mensaje_mapa"  
+                      )        
+
 ###########################################
 # Función que coloca las 5 ubicaciones en el mapa
 def crear_ubicaciones_mapa(canvas):
@@ -767,13 +769,37 @@ def crear_ubicaciones_mapa(canvas):
 
 ###########################################
 
+# Función que valida si una ubicación del mapa puede ser seleccionada
+    #Será utilizada en la función mostrar_ubicaciones_mapa()
+def clic_ubicacion_mapa(indice, canvas):
+
+    # Solo permite ingresar a la siguiente ubicación disponible que sea mayor a la actual
+     #Si esta en la primera ubicación "desierto" solo podrá acceder a la ubicación #2 "Selva"
+        #Es decir no se podrá retroceder o avanzar a otras ubicaciones superiores que no sea la correcta
+    if indice == canvas.ubicacion_actual[0] + 1: 
+        seleccionar_ubicacion_mapa(indice, canvas)  
+        return 
+
+    # Si la ubicación ya fue superada o aún no está disponible, se bloquea
+        #Se muestra el mensaje de que la ubicación esta bloqueada 
+    canvas.delete("mensaje_mapa")  
+    canvas.create_text(
+                        450, 560,
+                        text="Ubicación bloqueada",
+                        fill="white",
+                        font=("Arial", 16, "bold"),
+                        tags="mensaje_mapa"
+                      )
+###########################################
+
+
+
 # Función que dibuja las ubicaciones del mapa
 def mostrar_ubicaciones_mapa(indice, ubicaciones, canvas):
 
-    # Caso base: si ya recorrió toda la lista, se detiene
+    # si ya se recorrió toda la lista de ubicaciones, se detiene
     if indice >= len(ubicaciones):
         return
-
    
     ubicacion = ubicaciones[indice]
 
@@ -810,7 +836,7 @@ def mostrar_ubicaciones_mapa(indice, ubicaciones, canvas):
     imagen = imagen.resize((65, 65), Image.LANCZOS)
     imagen_tk = ImageTk.PhotoImage(imagen)
 
-    # Guarda la referencia de las imágenes para que no desaparezca
+    # Se guarda la referencia de las imágenes para que no desaparezca
     referencias_imagenes.append(imagen_tk)
 
     # Se dibuja la imagen en el mapa
@@ -820,25 +846,30 @@ def mostrar_ubicaciones_mapa(indice, ubicaciones, canvas):
     texto = canvas.create_text(
                                 x,
                                 y + 45,
-                                text=nombre, # Toma el nombre de la ubicación de esta posición definidad previamente: nombre = ubicacion[2]
+                                text=nombre,
                                 fill="white",
                                 font=("Arial", 10, "bold")
                             )
 
-    #  Si el usuario hace clic en la "imagen" de la ubicación se llama a la función de selección de ubicación mapa
+    # Se asigna el clic al icono de la ubicación
+        # Se llama a la función clic_ubicacion_mapa para validar si la ubicación esta bloquead o no 
+            # canvas.tag_bind: es una función en tkinter que sirve para detectar eventos con el clic
     canvas.tag_bind(
                         icono,
-                        "<Button-1>", #Clic izquierdo
-                        #lambda: permite llamara a la función seleccionar_ubicacion_mapa que abre la ventana de batallas
-                        lambda event, i=indice: seleccionar_ubicacion_mapa(i, canvas)
+                        "<Button-1>", #clic izquierdo
+                        lambda event, i=indice: clic_ubicacion_mapa(i, canvas) 
                     )
 
-    #  Si el usuario hace clic en el "texto" de la ubicación se llama a la función de selección de ubicación mapa
+    # Se asigna la posibilidad de acceder a la ubicación si se da  clic al texto
+        # Se llama a la función clic_ubicacion_mapa para validar si la ubicación esta bloquead o no 
+            # canvas.tag_bind: es una función en tkinter que sirve para detectar eventos con el clic 
     canvas.tag_bind(
                         texto,
-                        "<Button-1>",
-                        lambda event, i=indice: seleccionar_ubicacion_mapa(i, canvas)
+                        "<Button-1>", #clic izquierdo 
+                        lambda event, i=indice: clic_ubicacion_mapa(i, canvas)  
                     )
+
+    
 
     # Llamada recursiva para la siguiente ubicación
     mostrar_ubicaciones_mapa(indice + 1, ubicaciones, canvas)
@@ -846,15 +877,18 @@ def mostrar_ubicaciones_mapa(indice, ubicaciones, canvas):
 ###########################################
 
 #Función que crea la pantalla para iniciar la batalla del juego 
-def iniciar_ventana_batalla(indice):
+def iniciar_ventana_batalla(indice, canvas_mapa):
 
 #######
     #Se crea la ventana de batalla  
     ventana_batalla = Toplevel(pantalla_principal)
+
     #Se da el nombre a la ventana de btallas 
     ventana_batalla.title("Batalla contra Hollow")
+
     #Se define el tamaño que tiene la pantalla de batallas 
     ventana_batalla.geometry("700x500+385+150")
+
     #Se impide ampliar el tamaño de la pantalla de batallas 
     ventana_batalla.resizable(False, False)
 
@@ -877,6 +911,17 @@ def iniciar_ventana_batalla(indice):
     # Se crea el canvas donde se colocará la imagen de fondo de la pantalla de batallas 
     canvas_batalla = Canvas(ventana_batalla, width=700, height=500, highlightthickness=0)
     canvas_batalla.place(x=0, y=0)
+
+#######
+    # Se guarda referencia al canvas del mapa para actualizar progreso solo si gana
+        # Viene de la función seleccionar_ubicacion_mapa(...)
+    canvas_batalla.canvas_mapa = canvas_mapa 
+
+#######
+    # Se guarda cuál es la ubicación que se está peleando (desierto, selva, etc)
+        # Viene de la función seleccionar_ubicacion_mapa(indice, canvas)
+        # donde la ubicación "desierto" es el indice =0, ubicación "castillo", es el indice 1, etc.
+    canvas_batalla.indice_ubicacion = indice 
 
 #######
     #Variable que inicializa la vida del enemigo con 100 puntos de vida (cada vez que se ingresa a la pantalla de batalla se inicializa con 100) 
@@ -1321,10 +1366,10 @@ def ataque_del_guerrero(canvas, personaje_actual):
     enemigo_actual["vida"] = enemigo_actual["vida"] - dano  
 
     canvas.create_text(
-                        350, 390,
+                        385, 485,
                         text=f"Daño a {enemigo_actual['nombre']}: {dano}",  
                         fill="yellow",
-                        font=("Arial", 14, "bold"),
+                        font=("Arial", 12, "bold"),
                         tags="mensaje_batalla"
                     )
     return dano
@@ -1351,10 +1396,10 @@ def ataque_del_hollow(canvas, posicion_en_pantalla, personaje_actual):
     )
 
     canvas.create_text(
-        350, 420,
+        385, 468,
         text=f"{enemigo_actual['nombre']} hizo {dano} de daño",  
-        fill="red",
-        font=("Arial", 14, "bold"),
+        fill="white",
+        font=("Arial", 12, "bold"),
         tags="mensaje_batalla"
     )
 
@@ -1567,6 +1612,11 @@ def acompanantes_hollow(posicion, canvas):
         # Se utiliza para poder acceder posteriormente a cada imagen y eliminarla del canvas
     canvas.ids_enemigos.append(id_enemigo)
 
+     # Se guarda el ID visual dentro del enemigo correspondiente (se evita problema de que visualmente el enemigo no se une al grupo de los guerreros )
+        # posicion + 1 porque canvas.enemigos[0] es el Hollow principal
+            # y los acompañantes empiezan desde canvas.enemigos[1]
+    canvas.enemigos[posicion + 1]["id_canvas"] = id_enemigo
+
     # Llamada recursiva
     acompanantes_hollow(posicion + 1, canvas)
 
@@ -1578,7 +1628,7 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
     # Se limpian mensajes anteriores de batalla
     canvas.delete("mensaje_batalla")
 
-     # Se valida si ya no quedan enemigos para evitar error de índice
+     # Se valida si ya no quedan enemigos no se devuelve nada, para evitar error de índice
     if canvas.enemigo_actual >= len(canvas.enemigos):  
         return
 
@@ -1587,7 +1637,7 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
 
     # Se obtiene el enemigo actual antes del ataque
         #Viene de la función iniciar_ventana_batalla donde se obtiene la lista del hollow y sus acompañantes
-    """   [hollow,acompañante1, acompañante2]"""
+            # [hollow,acompañante1, acompañante2]
     enemigo_actual = canvas.enemigos[canvas.enemigo_actual]  
 
     # Se llama a la función ataque_del_guerrero
@@ -1620,7 +1670,7 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
         # Se pasa al siguiente enemigo de la lista
         canvas.enemigo_actual = canvas.enemigo_actual + 1 
 
-        # Si ya no quedan enemigos, termina la batalla
+        # Si ya no quedan enemigos, se termina la batalla
         if canvas.enemigo_actual >= len(canvas.enemigos): 
             canvas.create_text(
                                 350, 250,
@@ -1629,6 +1679,32 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
                                 font=("Arial", 22, "bold"),
                                 tags="mensaje_batalla"
                               )
+            
+            # Se actualiza la ubicación actual del jugador en el mapa (solo cuando gana la batalla)
+                # Viene de la función iniciar_ventana_batalla(indice, canvas_mapa)
+                # Donde se guardó la referencia al canvas del mapa en canvas_batalla.canvas_mapa
+                 # Se utiliza para registrar que el jugador ya superó la ubicación actual y puede avanzar al siguiente reino 
+            canvas.canvas_mapa.ubicacion_actual[0] = canvas.indice_ubicacion 
+
+            # Se eliminan mensajes anteriores del mapa
+                # Viene de la función seleccionar_ubicacion_mapa()
+                    # Donde se crean mensajes como "Ingresando a la ubicación" o "Ubicación bloqueada"
+                    # Se utiliza para evitar que se acumulen mensajes en pantalla
+            canvas.canvas_mapa.delete("mensaje_mapa") 
+
+
+            # Se muestra en el mapa que la ubicación fue superada
+                # Viene de la función turno_batalla(canvas, posicion_en_pantalla, personaje_actual)
+                    # Se utiliza para informarle al jugador que completó correctamente esa ubicación
+            canvas.canvas_mapa.create_text(
+                                            450, 560,
+                                            text=f"Ubicación {canvas.indice_ubicacion + 1} superada",
+                                            fill="white",
+                                            font=("Arial", 16, "bold"),
+                                            tags="mensaje_mapa"
+                                          ) 
+            
+
             # Se llama a la función  restaurar_personajes_base, que deja a los tres guerreros inciales seleccinados en la configuración 
                 #Se usa para evitar seleccionar entre los nuevos guerreros que ganamos en la pelea con los hollowws 
             restaurar_personajes_base()
@@ -1668,8 +1744,8 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
         canvas.create_text(
                             350, 450,
                             text="¡Perdiste, Tu personaje quedó en KO!",
-                            fill="red",
-                            font=("Arial", 16, "bold"),
+                            fill="yellow",
+                            font=("Arial", 12, "bold"),
                             tags="mensaje_batalla"
                           )
     
@@ -1733,7 +1809,8 @@ def enemigos(posicion, canvas_batalla):
                                         "vida_maxima": personaje["vida"],
                                         "ataque": personaje["ataque"],
                                         "defensa": personaje["defensa"],
-                                        "imagen": personaje["imagen"]
+                                        "imagen": personaje["imagen"],
+                                        "id_canvas": None # Guardará el id de la imgen del enemigo, se inicializa pero se llena en la fución acompanantes_hollow
                                     })
 
     enemigos(posicion + 1, canvas_batalla)
