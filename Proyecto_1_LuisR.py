@@ -1320,6 +1320,20 @@ def clic_boton_fight(canvas):
     # Se obtienela posición del guerrero seleccionado en la pantalla [0, 1, 2]
     posicion_en_pantalla = canvas.guerrero_seleccionado
 
+    # Se valida si el guerrero seleccionado ya no tiene vida (no puede atacar)
+        # Se obtiene la posición del guerrero seleccionado en pantalla
+    if canvas.vidas_guerreros[posicion_en_pantalla] <= 0: 
+        canvas.delete("mensaje_batalla")  
+
+        canvas.create_text(
+                            350, 450,
+                            text="Este guerrero está KO y no puede luchar",
+                            fill="white",
+                            font=("Arial", 14, "bold"),
+                            tags="mensaje_batalla"
+                          )  
+        return #como el guerrero no tiene vida no realiza ninguna acción 
+
     #Por ejemplo personaje id 7 del CSV [corresponde a la posición #2 en el campo de batalla]
     indice_real = personajes_seleccionados[posicion_en_pantalla]
 
@@ -1621,11 +1635,10 @@ def acompanantes_hollow(posicion, canvas):
     acompanantes_hollow(posicion + 1, canvas)
 
 ###########################################
-
 # Función que controla los turnos de la batalla
 def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
 
-    # Se limpian mensajes anteriores de batalla
+    # Se limpian mensajes anteriores de la batalla
     canvas.delete("mensaje_batalla")
 
      # Se valida si ya no quedan enemigos no se devuelve nada, para evitar error de índice
@@ -1638,7 +1651,7 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
     # Se obtiene el enemigo actual antes del ataque
         #Viene de la función iniciar_ventana_batalla donde se obtiene la lista del hollow y sus acompañantes
             # [hollow,acompañante1, acompañante2]
-    enemigo_actual = canvas.enemigos[canvas.enemigo_actual]  
+    enemigo_actual = canvas.enemigos[canvas.enemigo_actual]
 
     # Se llama a la función ataque_del_guerrero
         # Donde se calcula el daño y se le resta vida al enemigo actual
@@ -1650,17 +1663,18 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
 
 #######
     # Se actualiza la barra de vida del enemigo actual
-    barra_vida_hollow(canvas)  # Luego cambiamos esta función para que muestre cualquier enemigo
+    barra_vida_hollow(canvas)  
 
 #######
     # Se valida si el enemigo actual fue derrotado
-    if enemigo_actual["vida"] <= 0:  
+    if enemigo_actual["vida"] <= 0: 
+        
 
         # Se elimina visualmente el acompañante derrotado del lado de los enemigos
-            # Viene de la función turno_batalla(canvas, posicion_en_pantalla, personaje_actual)
-
-        if enemigo_actual["tipo"] == "acompanante": 
-            canvas.delete(canvas.ids_enemigos[canvas.enemigo_actual - 1])
+            # Viene de la función acompanantes_hollow(posicion, canvas)
+                # En esa función se guardó el ID visual del enemigo en enemigo_actual["id_canvas"]
+        if enemigo_actual["tipo"] == "acompanante" and enemigo_actual["id_canvas"] != None:
+            canvas.delete(enemigo_actual["id_canvas"])
 
         # Se llama a la función enemigo_a_guerrero para convertir un enemigo derrotado en un nuevo guerrero
             # La función verifica si el enemigo es un acompañante y, en caso de serlo, lo agrega al equipo del jugador
@@ -1670,8 +1684,25 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
         # Se pasa al siguiente enemigo de la lista
         canvas.enemigo_actual = canvas.enemigo_actual + 1 
 
-        # Si ya no quedan enemigos, se termina la batalla
+        # Se valida que ya no quedan más enemigos aunado a que es la última ubicación 
         if canvas.enemigo_actual >= len(canvas.enemigos): 
+            # Se valida que el jugador llegó a la última ubicación y debe finalizarse el juego 
+            if canvas.indice_ubicacion == 4: 
+
+                canvas.create_text(
+                                    350, 250,
+                                    text="¡FELICITACIONES!\nHas vencido a todos los Hollows de los reinos",
+                                    fill="yellow",
+                                    font=("Arial", 18, "bold"),
+                                    tags="mensaje_batalla"
+                                  )  
+                # Se llama a la función  restaurar_personajes_base, que deja a los tres guerreros inciales seleccinados en la configuración 
+                    #Se usa para evitar seleccionar entre los nuevos guerreros que ganamos en la pelea con los hollowws 
+                restaurar_personajes_base()  
+
+                canvas.after(5000, lambda: volver_pantalla_principal(canvas))  # AQUI ESTA EL CAMBIO
+                return  
+
             canvas.create_text(
                                 350, 250,
                                 text="¡TODOS LOS ENEMIGOS DERROTADOS!",
@@ -1684,7 +1715,7 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
                 # Viene de la función iniciar_ventana_batalla(indice, canvas_mapa)
                 # Donde se guardó la referencia al canvas del mapa en canvas_batalla.canvas_mapa
                  # Se utiliza para registrar que el jugador ya superó la ubicación actual y puede avanzar al siguiente reino 
-            canvas.canvas_mapa.ubicacion_actual[0] = canvas.indice_ubicacion 
+            canvas.canvas_mapa.ubicacion_actual[0] = canvas.indice_ubicacion
 
             # Se eliminan mensajes anteriores del mapa
                 # Viene de la función seleccionar_ubicacion_mapa()
@@ -1764,21 +1795,24 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
         #Se cierra la ventana y se regresa a la pantalla de parametrización 
         canvas.after(1500, lambda: volver_parametrizacion(canvas)) 
         return  
-
+    
 ###########################################
 #Función que asigna el hollows y sus acompañantes de forma aleatoria 
 def obtener_acompanantes_hollows(cantidad, lista_acompanantes):
 
     # En la función iniciar_ventana_pantalla, se inicializan las variables (cantidad, lista_acompanantes) = (2,[])
-    #Se valida si la cantidad de acom
+    #Si ya no se ocupa agregar más acompañantes devuelve la lista de este 
     if cantidad == 0:
         return lista_acompanantes
 
     #Se genera un número aleatorio (servirá para definir el personaje ID que acompañará al hollow)
     indice = random.randint(0, len(personajes) - 1)
 
-    #Se valida si el ID generado automáticamente no se ha utilizado 
-    if indice not in lista_acompanantes:
+    #Se valida si el ID generado random no se ha utilizado ni que el enemigo seleccionado tampoco haya sido escogido por el jugador 
+        #Viene de la lista personajes_seleccionados definida en la pantalla de parametrización
+            # Se utiliza para evitar que el jugador tenga que pelear contra su propio personaje
+    if indice not in lista_acompanantes and indice not in personajes_seleccionados:
+        
         #Se asigna el ide del personaje a la lista de acompañantes 
         lista_acompanantes.append(indice)
         # Se reduce la cantidad de acompañantes del hollow en 1 
@@ -1918,8 +1952,21 @@ def restaurar_personajes_base():
     personajes_seleccionados.append(personajes_base[2])  
 
 ###########################################
+# Función que cierra la pantalla de la última batalla al ganar y regresa al usuario a la  pantalla principal
+def volver_pantalla_principal(canvas):
 
+    # Se obtiene la ventana de batalla
+    ventana_batalla = canvas.winfo_toplevel()
 
+    # Se obtiene la ventana del mapa
+    ventana_mapa = canvas.canvas_mapa.winfo_toplevel()
 
+    # Se cierra la ventana de batalla
+    ventana_batalla.destroy()
+
+    # Se cierra la ventana del mapa
+    ventana_mapa.destroy()
+
+###########################################
 # Se agrega el mainloop para que se muestre la ventana 
 pantalla_principal.mainloop()
