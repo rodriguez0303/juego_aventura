@@ -504,8 +504,31 @@ def crear_boton_inicio():
     canvas_pantalla_principal.tag_bind(id_boton, "<Button-1>", click_boton)
 
 
-# Se crea el botón después de que el fondo ya fue dibujado
+# Función que crea el botón About en la pantalla principal
+def crear_boton_about(): 
+
+    # Se carga la imagen del botón
+    imagen_boton = cargar_imagen_boton_jugar("About.png")  
+
+    # Se dibuja en el canvas
+    id_boton = canvas_pantalla_principal.create_image(800, 420, image=imagen_boton)  
+
+    # Se guarda referencia
+    canvas_pantalla_principal.imagen_boton_about = imagen_boton
+
+    # Se puede acceder al botón about dando clic izquierdo sobre el 
+    canvas_pantalla_principal.tag_bind(
+                                            id_boton,
+                                            "<Button-1>",
+                                            lambda event: ventana_about()
+                                        )
+###########################################
+
+# Se crea el botón de inicio después de que el fondo ya fue dibujado
 pantalla_principal.after(300, crear_boton_inicio)
+
+# Se crea el botón about después de que el fondo ya fue dibujado
+pantalla_principal.after(300, crear_boton_about)
 
 ###########################################
 
@@ -888,6 +911,13 @@ def mostrar_ubicaciones_mapa(indice, ubicaciones, canvas):
 #Función que crea la pantalla para iniciar la batalla del juego 
 def iniciar_ventana_batalla(indice, canvas_mapa):
 
+
+#######
+    # Se restauran los personajes base antes de iniciar una nueva batalla
+        # Viene de la lista personajes_base creada en la parametrización
+        # Se utiliza para evitar que personajes ganados en una batalla incompleta (al cerrar la ventana con X)queden como guerreros activos
+    restaurar_personajes_base()
+
 #######
     #Se crea la ventana de batalla  
     ventana_batalla = Toplevel(pantalla_principal)
@@ -1263,7 +1293,7 @@ def mostrar_boton_fight(canvas):
     referencias_imagenes.append(imagen_tk)
 
     # Se dibuja el botón fight debajo de los personajes
-    id_boton_fight = canvas.create_image(180, 485, image=imagen_tk)
+    id_boton_fight = canvas.create_image(100, 485, image=imagen_tk)
 
     # Se guarda la imagen del botón Fight dentro del canvas
     canvas.imagen_boton_fight = imagen_tk
@@ -1456,7 +1486,7 @@ def ataque_del_hollow(canvas, posicion_en_pantalla, personaje_actual):
         # Se utiliza para evidenciar que el ataque del Hollow es aleatorio
     canvas.create_text(
         385, 468,
-        text=f"{enemigo_actual['nombre']} hizo {dano} de daño",  
+        text=f"{enemigo_actual['nombre']} atacó a {nombre_guerrero} e hizo {dano} de daño",  
         fill="white",
         font=("Arial", 12, "bold"),
         tags="mensaje_batalla"
@@ -1917,8 +1947,9 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
                             font=("Arial", 24, "bold"),
                             tags="mensaje_batalla"
                           )  
+        # Se regresa a la pantalla de parametrización tras perder 
+        pantalla_principal.after(1500, lambda: volver_parametrizacion(canvas)) 
 
-        canvas.after(1500, lambda: volver_parametrizacion(canvas)) 
         return  
 ###########################################
 #Función que asigna el hollows y sus acompañantes de forma aleatoria 
@@ -2043,13 +2074,29 @@ def guerreros_con_vida(posicion, canvas):
 
     return guerreros_con_vida(posicion + 1, canvas)
 ###########################################
+ 
+# Función que cierra la batalla, cierra el mapa y vuelve a la pantalla de parametrización
+    # Se utilizará cuando no queden guerreros con vida
 
-# Función que cierra la batalla y vuelve a la pantalla de parametrización se utilizará cuando no queden guerreros con vida 
 def volver_parametrizacion(canvas):
 
+    # Se obtiene la ventana de batalla
+        # Viene del canvas de batalla
+        # Se utiliza para cerrar la pantalla donde el jugador perdió
     ventana_batalla = canvas.winfo_toplevel()
+
+    # Se obtiene la ventana del mapa
+        # Viene de canvas.canvas_mapa, que fue guardado en iniciar_ventana_batalla
+        # Se utiliza para cerrar el mapa y evitar que quede detrás de la parametrización
+    ventana_mapa = canvas.canvas_mapa.winfo_toplevel() 
+
+    # Se cierra la ventana de batalla
     ventana_batalla.destroy()
 
+    # Se cierra la ventana del mapa
+    ventana_mapa.destroy()  
+
+    # Se abre nuevamente la pantalla de parametrización
     boton_inicio()
 
 ###########################################
@@ -2091,6 +2138,61 @@ def volver_pantalla_principal(canvas):
     # Se cierra la ventana del mapa
     ventana_mapa.destroy()
 
+###########################################
+# Función que muestra la ventana About del juego
+    # Muestra información del proyecto y del creador
+def ventana_about():  
+
+    # Se crea la ventana about 
+    ventana = Toplevel(pantalla_principal)
+    ventana.title("About")
+    ventana.geometry("600x400+450+150")
+    ventana.resizable(False, False)
+
+    # Se crea el canvas
+    canvas_about = Canvas(ventana, width=600, height=400, highlightthickness=0)
+    canvas_about.place(x=0, y=0)
+
+    # Se carga la imagen de fondo
+    ruta = os.path.join(BASE_DIR, "Imagenes", "Fondo3.png")  # puedes cambiarla si quieres
+    imagen = Image.open(ruta)
+    imagen = imagen.resize((600, 400), Image.LANCZOS)
+    imagen_tk = ImageTk.PhotoImage(imagen)
+
+    # Se dibuja el fondo
+    canvas_about.create_image(300, 200, image=imagen_tk)
+
+    # Se guarda referencia
+    canvas_about.imagen_fondo = imagen_tk
+
+    # Texto del About
+    canvas_about.create_text(
+        300, 150,
+        text="Proyecto Programado 1",
+        fill="white",
+        font=("Arial", 20, "bold")
+    )
+
+    canvas_about.create_text(
+        300, 200,
+        text="Versión de Visual Studio 1.118.1",
+        fill="white",
+        font=("Arial", 14, "bold")
+    )
+
+    canvas_about.create_text(
+        300, 250,
+        text="Creador: Luis Rodríguez",
+        fill="white",
+        font=("Arial", 16, "bold")
+    )
+
+    canvas_about.create_text(
+        300, 270,
+        text="Version: 1.0",
+        fill="white",
+        font=("Arial", 16, "bold")
+    )
 ###########################################
 # Se agrega el mainloop para que se muestre la ventana 
 pantalla_principal.mainloop()

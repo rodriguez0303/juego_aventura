@@ -1,7 +1,7 @@
 nombre,imagen,vida,ataque,defensa
-Maga del bosque,Guerrero1_frente.png,78,82,58
-Caballero Glacial,Guerrero2_frente.png,95,55,88
-Cazadora del Desierto,Guerrero3_frente.png,84,92,42
+Maga del bosque,Guerrero1_frente.png,1,82,58
+Caballero Glacial,Guerrero2_frente.png,1,55,88
+Cazadora del Desierto,Guerrero3_frente.png,1,92,42
 Centauro Espacial,Guerrero4_frente.png,72,96,33
 Titán de Hierro,Guerrero5_frente.png,100,45,95
 Asesino Sigiloso,Guerrero6_frente.png,88,90,62
