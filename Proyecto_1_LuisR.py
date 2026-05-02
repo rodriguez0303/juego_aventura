@@ -8,6 +8,7 @@ from PIL import Image, ImageTk  # Usamos Pillow para cargar imágenes JPG
 import os 
 from tkinter import Toplevel, Canvas, NO
 import random 
+import winsound
  
 # Evita que se presenten problemas al cargar las imagenes 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -88,8 +89,6 @@ def carga_imagen_pantalla_principal(imagen_nombre):
 
 # Se llama a la función que mostrará la imagen de fondo al canvas de la pantalla principal 
 pantalla_principal.after(200, lambda: carga_imagen_pantalla_principal("Fondo1.png"))
-
-
 
 ###########################################
 #Función que carga la imagen de fondo que tendrá el botón jugar 
@@ -692,6 +691,13 @@ personajes = cargar_personajes_csv()
 
 ###########################################
 ###########################################
+
+# Basado en:
+# Python Software Foundation. (s.f.). Módulo csv.
+# https://docs.python.org/3/library/csv.html
+# Adaptado a recursividad para este proyecto
+# Apoyo de la IA chatgpt
+
 #Función que carga los hollows del archivo CSV
 def cargar_hollows_csv():
 
@@ -2193,6 +2199,26 @@ def ventana_about():
         fill="white",
         font=("Arial", 16, "bold")
     )
+###########################################
+# Función que reproduce música en loop durante el juego
+def reproducir_musica():  
+
+    # Se define la ruta del archivo de audio
+        # Se utiliza BASE_DIR para evitar errores de ruta
+    ruta = os.path.join(BASE_DIR, "audio.wav")
+
+    # Se reproduce la música en loop de forma asíncrona
+        # SND_FILENAME → indica que es un archivo
+        # SND_ASYNC → no bloquea el juego
+        # SND_LOOP → repite la música indefinidamente
+    winsound.PlaySound(
+        ruta,
+        winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_LOOP
+    ) 
+###########################################
+#Se llama a la función que reproduce la música 
+pantalla_principal.after(1000, reproducir_musica) 
+
 ###########################################
 # Se agrega el mainloop para que se muestre la ventana 
 pantalla_principal.mainloop()
