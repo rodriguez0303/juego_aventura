@@ -26,6 +26,11 @@ avatar_seleccionado = []
         # Se crea esa lista vacía para guardar esa información 
 personajes_base = []
 
+# Variable que acumula el puntaje del jugador durante todo el juego
+    # Se utiliza para mantener el puntaje aunque se cierre una batalla y se avance a otra ubicación
+puntaje_jugador = [0]
+
+
 ###########################################
 #Creación de pantalla principal 
 pantalla_principal = Tk()
@@ -374,6 +379,10 @@ def boton_inicio():
 
     #Se vacía la lista del avatar seleccionado por el usuario si este se sale de la pantalla 
     avatar_seleccionado.clear()
+
+    # Se reinicia el puntaje del jugador al comenzar una nueva partida
+        # Si el jugador pierde o inicia de nuevo, el puntaje vuelva a cero
+    puntaje_jugador[0] = 0 
     
     #Toplevel: permite abrir una ventana secundaria sobre la ventana principal (para escribir el nombre del usuario) 
     ventana_boton_inicio = Toplevel(pantalla_principal)
@@ -913,6 +922,11 @@ def iniciar_ventana_batalla(indice, canvas_mapa):
     canvas_batalla.place(x=0, y=0)
 
 #######
+    # Puntaje temporal de la batalla actual
+        # Se utiliza para evitar guardar puntos si la batalla no se completa (el usuario cierra la ventana en la X)
+    canvas_batalla.puntaje_temporal = 0
+
+#######
     # Se guarda referencia al canvas del mapa para actualizar progreso solo si gana
         # Viene de la función seleccionar_ubicacion_mapa(...)
     canvas_batalla.canvas_mapa = canvas_mapa 
@@ -945,6 +959,17 @@ def iniciar_ventana_batalla(indice, canvas_mapa):
 
     # Se evita que la imagen de la pantalla de batalla desaparezca 
     canvas_batalla.imagen_fondo = imagen_fondo_tk
+
+#######
+    # Muestra el puntaje acumulado del jugador en la pantalla de batalla
+        # Es decir, cuántos enemigos el jugador ha ganado durante toda la partida
+    canvas_batalla.create_text(
+                                350, 25,
+                                text=f"Puntaje: {puntaje_jugador[0] + canvas_batalla.puntaje_temporal}", 
+                                fill="white",
+                                font=("Arial", 12, "bold"),
+                                tags="puntaje_jugador"
+                            )
 
 #######    
     # Se llama a la función que carga la imagenes de los guerrero en la pantalla de juego 
@@ -1160,8 +1185,8 @@ def mostrar_avatar_batalla(canvas):
     referencias_imagenes.append(imagen_tk)
 
     # Posición del avatar en pantalla
-    x = 80
-    y = 280
+    x = 350
+    y = 80
 
     # Se dibuja el avatar sobre el canvas
     canvas.create_image(x, y, image=imagen_tk)
@@ -1387,13 +1412,21 @@ def ataque_del_guerrero(canvas, personaje_actual):
                         tags="mensaje_batalla"
                     )
     return dano
+
 ###########################################
+
 # Función que determina el ataque del hollows y sus acompañantes hacia el guerrero seleccionado
 def ataque_del_hollow(canvas, posicion_en_pantalla, personaje_actual):
 
-    #Viene de la función clic_boton_fight(canvas)
-     #Donde se obtiene el id del personaje y su valores del CSV 
-    defensa_personaje = personaje_actual["defensa"]
+    # Se obtiene el índice real del guerrero atacado
+        # Viene de la lista personajes_seleccionados
+        # Se utiliza para identificar qué personaje del CSV está siendo atacado
+    indice_real = personajes_seleccionados[posicion_en_pantalla] 
+
+    # Se obtiene la defensa del guerrero atacado
+        # Viene de la lista personajes (datos del CSV)
+        # Se utiliza para calcular correctamente el daño recibido por el guerrero seleccionado al azar
+    defensa_personaje = personajes[indice_real]["defensa"] 
 
     #Viene de la función iniciar_ventana_batalla()
         # Donde se identifica cual enemigo esta peleado si el hollow o sus acompañantes 
@@ -1403,12 +1436,24 @@ def ataque_del_hollow(canvas, posicion_en_pantalla, personaje_actual):
         #Donde se toma el ataque del enemigo y lo compara contra la defensa del guerrero 
     dano = calcular_dano(enemigo_actual["ataque"], defensa_personaje)  
 
-    #Viene de la función iniciar_ventana_batalla()
-        #Donde se le resta solamente vida al guerrero que esta peleando 
+    #Se actualiza la vida del guerrero tacado 
+        # Viene del cálculo de daño del Hollow
+        # Se utiliza para reducir la vida del guerrero objetivo
     canvas.vidas_guerreros[posicion_en_pantalla] = (
-        canvas.vidas_guerreros[posicion_en_pantalla] - dano
-    )
+        canvas.vidas_guerreros[posicion_en_pantalla] - dano)
+    
+    # Se valida que la vida tras los ataques no sea negativa
+        # Dejando la vida mínima en 0 y evitando con ello valores inválidos
+    if canvas.vidas_guerreros[posicion_en_pantalla] < 0: 
+        canvas.vidas_guerreros[posicion_en_pantalla] = 0  
 
+    # Se obtiene el nombre del guerrero atacado
+        # Viene de la función  lista personajes
+        # Se utiliza para mostrar a qué guerrero atacó el Hollow de forma aleatoria
+    nombre_guerrero = personajes[indice_real]["nombre"]
+
+    # Se muestra un mensaje de a que personaje daño el hollow o sus acompañantes 
+        # Se utiliza para evidenciar que el ataque del Hollow es aleatorio
     canvas.create_text(
         385, 468,
         text=f"{enemigo_actual['nombre']} hizo {dano} de daño",  
@@ -1458,7 +1503,7 @@ def barra_vida_guerrero(canvas):
 
     # Posición de la barra en pantalla
     x = 80
-    y = 40
+    y = 46
 
     # Fondo de la barra
     canvas.create_rectangle(
@@ -1482,7 +1527,7 @@ def barra_vida_guerrero(canvas):
 
     # Texto de vida
     canvas.create_text(
-                        x + 50,
+                        x + 55,
                         y - 10,
                         text=f"Vida guerrero: {vida_actual}",
                         fill="white",
@@ -1578,7 +1623,7 @@ def imagen_hollow_batalla(canvas):
     referencias_imagenes.append(imagen_tk)
 
     # Se dibuja el Hollow en el lado derecho
-    canvas.create_image(560, 330, image=imagen_tk)
+    canvas.create_image(250, 255, image=imagen_tk)
 
 ###########################################
 
@@ -1614,8 +1659,8 @@ def acompanantes_hollow(posicion, canvas):
     referencias_imagenes.append(imagen_tk)
 
     # Posiciones de los acompañantes al lado del Hollow
-    x = 500 + (posicion * 120)
-    y = 400
+    x = 390 + (posicion * 120)
+    y = 255
 
     # Se dibuja el acompañante y se guarda su ID para poder eliminarlo si es derrotado
         # Viene de la función acompanantes_hollow(posicion, canvas)
@@ -1635,6 +1680,26 @@ def acompanantes_hollow(posicion, canvas):
     acompanantes_hollow(posicion + 1, canvas)
 
 ###########################################
+
+#Función que determina cuales guerreros tienen vida
+    #Se utilizarán para el ataque aleatorio del hollow y sus acompañantes en la función turno del Hollow
+def obtener_guerreros_vivos(indice, vidas, lista_vivos):
+    
+    # Se detiene cuando ya se ha recorrido los 3 guerreros 
+        # el indice se incrementa y se valida si es igual a la cantidad de vidas: Por ejemplo, son 3 vidas. vidas = [100, 0, 50]
+    if indice >= len(vidas):
+        return lista_vivos
+
+    # Se obtiene la vida del guerrero en la posición actual
+        # Viene de la lista canvas.vidas_guerreros, si la vida es mayor a 0 se agrega el guerrero al listado 
+    if vidas[indice] > 0:
+        lista_vivos.append(indice)
+
+    # Se agrega el indice del guerrero que tiene vida 
+    return obtener_guerreros_vivos(indice + 1, vidas, lista_vivos)
+
+###########################################
+
 # Función que controla los turnos de la batalla
 def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
 
@@ -1681,11 +1746,52 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
             # Se utiliza para borrar del canvas la imagen del acompañante derrotado
         enemigo_a_guerrero(canvas, enemigo_actual)
 
+        # Se incrementa el puntaje si el jugador se adueña de un acompañante derrotado
+            # Viene de la función enemigo_a_guerrero(canvas, enemigo_actual)
+        if enemigo_actual["tipo"] == "acompanante":  
+             
+            # Se acumula el puntaje temporal de la batalla
+                # Se utiliza para evitar guardar puntos si el jugador abandona la batalla (al presionar el botón X)
+            canvas.puntaje_temporal = canvas.puntaje_temporal + 1
+
+            canvas.delete("puntaje_jugador") 
+
+            canvas.create_text(
+                                350, 25,
+                                text=f"Puntaje: {puntaje_jugador[0] + canvas.puntaje_temporal}",
+                                fill="white",
+                                font=("Arial", 12, "bold"),
+                                tags="puntaje_jugador"
+                            ) 
+
         # Se pasa al siguiente enemigo de la lista
         canvas.enemigo_actual = canvas.enemigo_actual + 1 
 
         # Se valida que ya no quedan más enemigos aunado a que es la última ubicación 
         if canvas.enemigo_actual >= len(canvas.enemigos): 
+
+        #Se suma el puntaje temporal al puntaje global del jugador
+            # Se toma de la función turno_batalla
+            # Se utiliza para guardar únicamente los puntos obtenidos cuando el jugador completa toda la ubicación
+                    
+            puntaje_jugador[0] = puntaje_jugador[0] + canvas.puntaje_temporal 
+            canvas.puntaje_temporal = 0 
+
+            # Se elimina el texto anterior del puntaje en pantalla
+                # Se utiliza para evitar que el puntaje se dibuje varias veces encima (texto duplicado)
+            canvas.delete("puntaje_jugador")  
+
+            # Se dibuja nuevamente el puntaje actualizado en pantalla
+                # Viene de la lógica de actualización del puntaje después de ganar la batalla
+                # Se utiliza para mostrar el valor correcto del puntaje global del jugador
+            canvas.create_text(
+                                350, 25,
+                                text=f"Puntaje: {puntaje_jugador[0]}",
+                                fill="white",
+                                font=("Arial", 12, "bold"),
+                                tags="puntaje_jugador"
+                            ) 
+
             # Se valida que el jugador llegó a la última ubicación y debe finalizarse el juego 
             if canvas.indice_ubicacion == 4: 
 
@@ -1700,7 +1806,7 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
                     #Se usa para evitar seleccionar entre los nuevos guerreros que ganamos en la pelea con los hollowws 
                 restaurar_personajes_base()  
 
-                canvas.after(5000, lambda: volver_pantalla_principal(canvas))  # AQUI ESTA EL CAMBIO
+                canvas.after(5000, lambda: volver_pantalla_principal(canvas)) 
                 return  
 
             canvas.create_text(
@@ -1761,17 +1867,38 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
 #######
 # ATAQUE DEL ENEMIGO ACTUAL
 
-    # Se llama a la función ataque_del_hollow y sus acompañantes
-    dano_hollow = ataque_del_hollow(canvas, posicion_en_pantalla, personaje_actual)
+    # De la función obtener_guerreros_vivos se obtiene cuales son los guerreros con vida para escogerlos aleatoriamente 
+        #Se le pasa los valores:  obtener_guerreros_vivos(indice, vidas, lista_vivos)
+            # canvas.vidas_guerreros viene de la función iniciar_ventana_batalla y sirve para determinar si el guerrero esta vivo o en KO
+            #[] Almacenará el id de los guerreros con vida 
+    guerreros_vivos = obtener_guerreros_vivos(0, canvas.vidas_guerreros, [])
+    
+    # Si hay guerreros con vida mayor a 0
+    if len(guerreros_vivos) > 0:
+
+        # Se selecciona un guerrero al azar
+            # Se utiliza random.choice para que este sea atacado por el hollow 
+        objetivo = random.choice(guerreros_vivos) 
+
+    else:
+        return  # Si no hay personajes vivos no se hace nada 
+
+    # Se ejecuta el ataque del Hollow hacia un guerrero seleccionado al azar 
+        # Viene de la función turno_batalla
+        # Se utiliza para calcular el daño que el enemigo (Hollow o acompañante) le hace a un guerrero del jugador
+        # objetivo es el índice del guerrero que será atacado
+            # Viene de la selección aleatoria (random.choice)
+            # Se utiliza para decidir a quién ataca el Hollow
+    dano_hollow = ataque_del_hollow(canvas, objetivo, personaje_actual) 
 
     print("Daño recibido:", dano_hollow)
-    print("Vida del personaje:", canvas.vidas_guerreros[posicion_en_pantalla])
+    print("Vida del personaje:", canvas.vidas_guerreros[objetivo]) 
 
     # Se llama a la función que crea la barra de vida del guerrero
     barra_vida_guerrero(canvas)
 
     # Se valida si el guerrero quedó en KO
-    if canvas.vidas_guerreros[posicion_en_pantalla] <= 0:
+    if canvas.vidas_guerreros[objetivo] <= 0: 
         canvas.create_text(
                             350, 450,
                             text="¡Perdiste, Tu personaje quedó en KO!",
@@ -1781,8 +1908,6 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
                           )
     
     # Se valida si ya no queda ningún guerrero vivo
-     #Se llama a la función guerreros_con_vida y si su resultado es False, todos los guerrero murieron
-        # y se regresa al jugador a la pantalla de configuración  
     if guerreros_con_vida(0, canvas) == False:  
 
         canvas.create_text(
@@ -1792,10 +1917,9 @@ def turno_batalla(canvas, posicion_en_pantalla, personaje_actual):
                             font=("Arial", 24, "bold"),
                             tags="mensaje_batalla"
                           )  
-        #Se cierra la ventana y se regresa a la pantalla de parametrización 
+
         canvas.after(1500, lambda: volver_parametrizacion(canvas)) 
         return  
-    
 ###########################################
 #Función que asigna el hollows y sus acompañantes de forma aleatoria 
 def obtener_acompanantes_hollows(cantidad, lista_acompanantes):
